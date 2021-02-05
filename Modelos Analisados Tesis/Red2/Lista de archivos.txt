@@ -1,0 +1,19 @@
+0. Red2
+1. Descriptores usados
+
+%Red2 23
+Model = 'Red2';
+selected_input = ["dnAB","dnCCDB","dnQC",...
+    "g_CH3", "g_CH2_linear","g_OH",...
+    "g_O_linear", "g_O_ring",...	
+    "Ketone_linear", "Ketone_ring", "Aldehyde", "Ester_linear",...	
+    "g_CH_linear", "g_CHdb_ring", "g_CH2db_linear",...	
+    "g_CH_ring", "g_CH2_ring","dnOHprim", "dnOHsec", "dnOHter",...
+    "Carboxylic_acid","Mod_Louvain","Mod_Leiden"];
+
+2. Feature selection fsrnca
+3. Copia workspace del mejor modelo a 10 redes neuronales (c)
+4. Valores predichos (c)
+5. Relevancia (c)
+6. Imagenes de los gráficos de R, MSE, Hist y salvar net (c)
+7. Función
