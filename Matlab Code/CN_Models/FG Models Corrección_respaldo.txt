@@ -1,0 +1,145 @@
+%14 MSE 175
+Model = 'FG Model I'; 
+selected_input = ["dnAB","dnCCDB","dnQC",...
+    "g_CH3", "g_CH2_linear",...
+    "g_OH", "g_O_linear", "g_O_ring",...	
+    "Ketone_linear", "Keton_ring", "Aldehyde", "Ester_linear",...
+     "g_CH2_ring","Carboxylic_acid","Modularity"];
+
+%19 MSE 242
+Model = 'FG Model II'; 
+selected_input = ["dnAB","dnCCDB","dnQC",...
+    "g_CH3", "g_CH2_linear",...
+    "g_OH", "g_O_linear", "g_O_ring",...	
+    "Ketone_linear", "Keton_ring", "Aldehyde", "Ester_linear",...	
+    "g_CH_linear", "g_CHdb_linear", "g_CHdb_ring", "g_CH2db_linear",...	
+    "g_CH_ring", "g_CH2_ring","Carboxylic_acid","Modularity"];
+
+%20 MSE 130-211
+Model = 'FG Model III'; 
+selected_input = ["dnAB","dnCCDB","dnQC",...
+    "g_CH3", "g_CH2_linear",...
+    "g_O_linear", "g_O_ring",...	
+    "Ketone_linear", "Keton_ring", "Aldehyde", "Ester_linear",...	
+    "g_CH_linear", "g_CHdb_linear",...	
+    "g_CH_ring", "g_CH2_ring","dnOHprim", "dnOHsec", "dnOHter",...
+    "Carboxylic_acid"];
+
+%21 MSE 134-182-220
+Model = 'FG Model III + Modularity'; 
+selected_input = ["dnAB","dnCCDB","dnQC",...
+    "g_CH3", "g_CH2_linear",...
+    "g_O_linear", "g_O_ring",...	
+    "Ketone_linear", "Keton_ring", "Aldehyde", "Ester_linear",...	
+    "g_CH_linear", "g_CHdb_linear",...	
+    "g_CH_ring", "g_CH2_ring","dnOHprim", "dnOHsec", "dnOHter",...
+    "Carboxylic_acid","Modularity"];				
+
+%18
+Model = 'FG_Model_Final';
+selected_input = ["dnAB","dnQC",...
+    "g_CH3", "g_CH2_linear",...
+    "g_OH", "g_O_linear", "g_O_ring",...	
+    "Ketone_linear", "Aldehyde", "Ester_linear",...	
+    "g_CH_linear", "g_CHdb_linear", "g_CHdb_ring",...	
+    "g_CH_ring", "g_CH2_ring","Carboxylic_acid",...  
+    "Mod_Louvain", "Mod_Leiden"];
+
+%cargar los datos en Workspace
+glycerol_derivs_dataset = readtable('Dataset Cetano Avance 3.csv');
+selected_target = ["CN_literature"];
+Target = table2array(glycerol_derivs_dataset(:,selected_target));
+Input = table2array(glycerol_derivs_dataset(:,selected_input));                
+
+%Cálculo Error data target-predicted
+Predicted = myNeuralNetworkFunction(x)';
+Error = t'-Predicted;
+Resultados = dataset(t',Predicted,Error);
+
+net.divideFcn = 'divideind';  % Divide data randomly
+net.divideMode = 'sample';  % Divide up every sample
+net.divideParam.testInd = 01:120;
+net.divideParam.trainInd = 121:571;
+net.divideParam.valInd = 572:601;
+
+%Weights matrix data output, and relative relevance of FG
+weights = getwb(net);
+wb = formwb(net,net.b,net.iw,net.lw);
+[b,iw,lw] = separatewb(net,wb);
+IW_1 = iw{:,:};
+[rown, coln] = size(IW_1);
+suma_Wij2 = 1./sum(IW_1.^2);
+alpha = log10(suma_Wij2);
+min_alpha = min(alpha);
+alpha_plus = alpha; 
+bar(IW_1,'DisplayName','IW_1');
+
+%Sort the data & Rearrenge Labels
+[sorted_data, new_indices] = sort(alpha_plus,'descend'); %sort in des order
+sorted_labels = char(new_indices);
+
+%Plot in Descending Order
+figure();
+bar(sorted_data, 0.6);
+set(gca, 'xticklabel', sorted_labels)
+xticks(1:coln)
+xtickangle(90)
+title('Relevancia')
+
+%matrix_Corr = corr(Input);
+fit_Corr = fitlm(Input, Target);
+
+%%Working with Tables in matlab
+
+%%Looking Up Table Properties
+DataTable.Properties
+DataTable.Properties.VariableNames={'Names','Test'}
+
+%%Selecting Variables (Columns) from a  Table
+N = DataTable.Names,
+T1 = DataTable.Test1;
+
+%%Sorting By Value
+DataTable = sortrows(DataTable, 'Names');
+DataTable = sortrows(DataTable, 'Names','ascend');
+DataTable = sortrows(DataTable, 'Names','descend');
+
+DataTable2 = sortrows(DataTable, ('Test1','Test2','Test3'),'descend');
+
+%%Working on a Single Colum
+DataTable2.DateStarted = datetime(DataTable2.DateStarted);
+
+%%Calculate the Mean  Test Result and Add it as a New Col
+DataTable2.MeanTestResults=mean([DataTable2.Test1,DataTable2.Test2,DataTable2.Test3],2)
+
+%%Checking the Class of Variables (Colums)
+N = class(DataTable2.Names)
+T1 = class(DataTable2.Test1)
+
+%%Rearranging Variables (Colums) in a Table
+DataTable3 = DataTable2(:,[1,5,2,3,4,6]);
+DataTable4 = DataTable2(:,['Names''DateStarted','Test1','Test2']);
+
+%%Create a Categorical Column
+DataTable4.FinalGrades={'A','B','C','D','F','A');
+FG=class(DataTable4.FinalGrades)
+DataTable4.FinalGrades=categorical(DataTable4.FinalGrades)
+Aselect = {'A'}
+Aselect = categorical(Aselect);
+LogicalRowSelect = DataTable4.FinalGrades==Aselect
+
+%%Feature selection
+>> mdl = fsrnca(Input,Target);
+>> figure()
+plot(mdl.FeatureWeights,'ro')
+xlabel('Feature Index')
+ylabel('Feature Weight')
+grid on
+>> figure()
+plot(mdl.FitInfo.Iteration,mdl.FitInfo.Objective,'ro-')
+grid on
+xlabel('Iteration Number')
+ylabel('Objective')
+>> 
+
+%%
